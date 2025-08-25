@@ -1,0 +1,50 @@
+name: Add audio from external trigger
+
+on:
+  repository_dispatch:
+    types: [add-audio]
+
+jobs:
+  add-audio:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Install Git LFS
+        run: git lfs install
+      - name: Prepare paths
+        id: prep
+        run: |
+          ORIGINAL_PATH="${{ github.event.client_payload.path }}"
+          FILENAME=$(basename "$ORIGINAL_PATH")
+          PATH_IN_REPO="audio/$FILENAME"
+          echo "PATH_IN_REPO=$PATH_IN_REPO" >> $GITHUB_OUTPUT
+          echo "BRANCH=add-audio-$(date +%Y%m%d%H%M%S)" >> $GITHUB_OUTPUT
+      - name: Create branch
+        run: |
+          git switch -c "${{ steps.prep.outputs.BRANCH }}"
+      - name: Download audio file
+        run: |
+          mkdir -p audio
+          curl -L "${{ github.event.client_payload.url }}" -o "${{ steps.prep.outputs.PATH_IN_REPO }}"
+      - name: (Optional) verify checksum
+        if: ${{ github.event.client_payload.sha256 != '' }}
+        run: |
+          echo "${{ github.event.client_payload.sha256 }}  ${{ steps.prep.outputs.PATH_IN_REPO }}" | sha256sum -c -
+      - name: Commit
+        run: |
+          git add "${{ steps.prep.outputs.PATH_IN_REPO }}"
+          git commit -m "${{ github.event.client_payload.commit_message || 'chore: add audio' }}"
+          git push --set-upstream origin "${{ steps.prep.outputs.BRANCH }}"
+      - name: Open PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          title: "Add audio: ${{ steps.prep.outputs.PATH_IN_REPO }}"
+          body: |
+            Source: ${{ github.event.client_payload.url }}
+            Added at: ${{ steps.prep.outputs.PATH_IN_REPO }}
+            Original path: ${{ github.event.client_payload.path }}
+          branch: ${{ steps.prep.outputs.BRANCH }}
+          base: main
