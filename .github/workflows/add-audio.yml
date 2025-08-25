@@ -47,4 +47,4 @@ jobs:
             Added at: ${{ steps.prep.outputs.PATH_IN_REPO }}
             Original path: ${{ github.event.client_payload.path }}
           branch: ${{ steps.prep.outputs.BRANCH }}
-          base: main
+          base: master
