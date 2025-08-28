@@ -1,7 +1,7 @@
 ---
 actor_ids:
   - alice
-  - bob
+  - bob
 audio_file_path: /audio/2025-08-29-episode.wav
 audio_file_size: 0
 date: 2025-08-29 00:00:00 +0900
